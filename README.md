@@ -1,6 +1,7 @@
 # Deploy on a testnet 
 Deploy the contract on rinkeby testnet
 Include abi (Application binary interface ) and address for the deployed contract on disney.js
+Make the necessary changes on disney.js
 
 # Deploy contracts and execute app on devnet with ganache
 Execute ganache and do the necesary modification on disney.js ( Currently set to run on Ganache, no needed to modify anything )
