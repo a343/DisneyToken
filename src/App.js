@@ -3,49 +3,41 @@ import "./App.css";
 import React from "react";
 import web3 from "./web3";
 import disney from "./disney";
-import axios from 'axios'
 import Select from 'react-select'
 
 class App extends React.Component {
 
   constructor(props) {
     super(props);
-    this.state = { atraccionesDisponibles: "", value: "", numTokens: 0, rideSelected: "", dropDownOpt: [],   message: "" };
+    this.state = { atraccionesDisponibles: "", value: "", numTokens: 0, rideSelected: "", dropDownOpt: [], message: "", precioToken: 0 };
   }
 
-  onSubmit = async (event) => {
+  buyTokens = async (event) => {
     event.preventDefault();
     const accounts = await web3.eth.getAccounts();
-
     const data = new FormData(event.target);
-    console.log(data.get('numToken'));
-    const token = data.get('numToken');
+    const tokens = data.get('numToken');
 
-    console.log(web3.utils.toWei(token, 'ether'));
-
-
-
-    disney.methods.compraToken(data.get('numToken')).send({
+    disney.methods.compraToken(tokens).send({
       from: accounts[0],
-      value: web3.utils.toWei(token, 'ether') //Suponemos que los ethers dados son los mismos que los tokens
+      value: web3.utils.toWei(tokens, 'ether') //Suponemos que los ethers dados son los mismos que los tokens
 
     }).then(async (res) => {
       console.log('Success', res);
-      const numTokens = await disney.methods.getMisTokens().call({
-        from: accounts[0],
-        gasLimit: '0x3d0900',
-      });
-      this.setState({ numTokens });
+      await this.loadNumTokens();
 
     })
-      .catch(err => console.log(err))
+      .catch(err => {
+        console.log(err);
+        this.setState({ message: err.message });
+      })
 
   };
 
 
   onChange(event) {
     console.log('Ride selected : ', event.value);
-    this.setState({ rideSelected :  event.value});
+    this.setState({ rideSelected: event.value });
   }
 
   onClick = async () => {
@@ -57,15 +49,13 @@ class App extends React.Component {
     }).then(async (res) => {
       console.log('Success', res);
       this.setState({ message: "Disfruta de " + this.state.rideSelected });
-      const numTokens = await disney.methods.getMisTokens().call({
-        from: accounts[0],
-        gasLimit: '0x3d0900',
-      });
-      this.setState({ numTokens });
+
+      await this.loadNumTokens();
+
     })
       .catch(err => {
         console.log(err)
-        this.setState({ message: err.message});
+        this.setState({ message: err.message });
 
       });
 
@@ -83,38 +73,44 @@ class App extends React.Component {
       gasLimit: '0x3d0900',
     }).then(async (res) => {
       console.log('Success', res);
-      const atraccionesDisponibles = await disney.methods.atraccionesDisponibles().call({
-        from: accounts[0]
-      });
-      this.setState({ atraccionesDisponibles });
-     
-      const dropDownValue = atraccionesDisponibles.map((response) => ({
-        "value": response,
-        "label": response
-      }))
-  
-      this.setState({ dropDownValue });
+      await this.loadAvailableRides();
 
     })
-      .catch(err => console.log(err))
+      .catch(err => {
+        console.log(err);
+        this.setState({ message: err.message});
+      })
 
   };
- 
+
 
 
   async componentDidMount() {
-    const atraccionesDisponibles = await disney.methods.atraccionesDisponibles().call();
+    const precioToken  =  await disney.methods.getPrecioToken().call();
+
+    this.setState({precioToken :  web3.utils.fromWei(precioToken, 'ether')});
+
+    await this.loadAvailableRides();
+
+    await this.loadNumTokens();
+
+  }
+
+  async loadNumTokens() {
     const numTokens = await disney.methods.getMisTokens().call();
-     
+    this.setState({ numTokens });
+  }
+
+  async loadAvailableRides() {
+    const atraccionesDisponibles = await disney.methods.atraccionesDisponibles().call();
+    this.setState({ atraccionesDisponibles });
+
     const dropDownValue = atraccionesDisponibles.map((response) => ({
       "value": response,
       "label": response
-    }))
+    }));
 
     this.setState({ dropDownValue });
-    this.setState({ atraccionesDisponibles });
-    this.setState({ numTokens });
-
   }
 
   render() {
@@ -125,23 +121,21 @@ class App extends React.Component {
         <form onSubmit={this.addRides}>
           <h4>Add new rides</h4>
           <div>
-           <p> <label htmlFor="rideName">Please, enter the new ride </label>
-            <input id="rideName" name="rideName" type="string" /></p>
-           <p> <label htmlFor="price">Please, enter the price </label>
-            <input id="price" name="price" type="number" /></p>
+            <p> <label htmlFor="rideName">Please, enter the new ride </label>
+              <input id="rideName" name="rideName" type="string" /></p>
+            <p> <label htmlFor="price">Please, enter the price </label>
+              <input id="price" name="price" type="number" /></p>
           </div>
           <button>Add ride</button>
         </form>
-
-        <p>These are the available rides:  {this.state.atraccionesDisponibles}</p>
         <p>You have:  {this.state.numTokens} tokens</p>
-        <form onSubmit={this.onSubmit}>
-          <h4>Do you want to buy some tokens?</h4>
+        <form onSubmit={this.buyTokens}>
+          <h4>Do you want to buy some tokens? The token price is : {this.state.precioToken} ethers </h4>
           <div>
             <label htmlFor="numToken">Please, enter the amount of token to buy </label>
             <input id="numToken" name="numToken" type="number" />
           </div>
-          <button>Enter</button>
+          <button>Buy</button>
         </form>
 
         <hr />

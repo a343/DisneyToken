@@ -12,8 +12,7 @@ contract Disney{
     
     //Direccion de Disney
     address payable public owner;
-    
-    
+  
     //Constructor
     constructor () public{
         token = new ERC20Basic(100000);
@@ -35,15 +34,17 @@ contract Disney{
     //---------------------------------------------GESTION DE TOKENS-------------------------------------------------
     
     //Funcion para establecer el precio del TOKENS
-    function precioToken(uint _numToken) internal pure returns (uint){
+    function costeTokenAcomprar(uint _numToken) internal pure returns (uint){
         //Conversion de token a Ethers 1 Token --> 1 ether
-        return _numToken*(1 ether);
+        return _numToken*(getPrecioToken());
     }
     
     //Funcion para comprar tokens en Disney
     function compraToken (uint _numTokens) public payable {
+         
         //coste de los tokens a comprar
-        uint coste = precioToken(_numTokens);
+        uint coste = costeTokenAcomprar(_numTokens);
+   
         //evaluacion del dinero que el cliente paga por los tokens
         require(msg.value >= coste, "No tienes suficiente ehters para comprar tantos tokens");
         //Cambio a devolver al cliente 
@@ -60,7 +61,12 @@ contract Disney{
         
         
     }
-    
+ 
+    //Return the token price
+    function getPrecioToken() public pure returns (uint){
+        return 1 ether;
+    }
+
     //Balance de tokens del contrato dinsey
     function balanceOf() public view returns (uint){
         return token.balanceOf(address(this));
@@ -214,7 +220,7 @@ event disfruta_comida(string,uint, address);
         //el cliente devuelve los tokens
         token.transfer_disney(msg.sender, address(this), _numTokens);
         //devolucion de los ethers al cliente
-        msg.sender.transfer(precioToken(_numTokens));
+        msg.sender.transfer(costeTokenAcomprar(_numTokens));
 
         
     }
